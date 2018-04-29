@@ -8,7 +8,7 @@
 		first row: header: "item code", "Quantity", "Unit prize", "Serial number"
 		first column: ISBN
 	First export as CSV
-	Output: csv : ISBN, author, title, publisher
+	Output: varies, depends on type and available metadata
 """
 
 """
@@ -22,56 +22,197 @@ import sys
 import logging
 import argparse
 import os
+#import bibtexparser
+#import inspect
 
-__name__ = "parse_isbn_csv"
+#__name__ = "parse_isbn_csv"
 __copyright__ = "Copyright 2018, Olaf Zevenboom"
 __author__ = "Olaf Zevenboom"
 __credits__ = ["Olaf Zevenboom"]
 __license__ = "http://www.wtfpl.net/"
-__version__ = "0.1"
+__version__ = "0.4"
 __status__ = "Development"
 
 # see for current services and limitations: https://pypi.org/project/isbnlib/
 #isbn_service = 'openl'
 isbn_service = 'wcat'
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 parser = argparse.ArgumentParser(description='ISBN CSV parser')
 parser.add_argument('-i', '--input', help='Input filename', required=True)
 parser.add_argument('-o', '--output', help='Output filename', required=True)
+parser.add_argument('-f', '--formatter', help='type of output (bibtex, csl, msword, endnote, refworks, opf, json)')
 args = parser.parse_args()
 
 isbncsvfile = args.input
 logger.info("About to start parsing ISBN CSV file: %s" % isbncsvfile)
+outfile = args.output
+formatter = args.formatter
 
-items = []
+logger.debug("Arg input : %s" % isbncsvfile)
+logger.debug("Arg output : %s" % outfile)
+logger.debug("Arg type : %s" % formatter)
 
-if os.path.exists(isbncsvfile):
-	with open(isbncsvfile) as csvfile:
-		itemcount=-1
-		readCSV = csv.reader(csvfile, delimiter=',')
-		for row in readCSV:
-			# first row is header info
-			if itemcount>=0:
-				itemcode = row[0] # ISBN
-				#quantity = row[1]
-				#unitprice = row[2]
-				#serialnumber = row[3]
-				isbn = itemcode # for now we are only interested in the first column: ISBN 
-				items.append(isbn)
-			itemcount += 1
-logger.info("A total of %d alleged ISBN have been read" % itemcount)
+"""
+	input
+"""
+def read_input(infile):
+	items = []
 
+	if os.path.exists(infile):
+		with open(infile) as csvfile:
+			itemcount=-1
+			readCSV = csv.reader(csvfile, delimiter=',')
+			for row in readCSV:
+				# first row is header info
+				if itemcount>=0:
+					itemcode = row[0] # ISBN
+					#quantity = row[1]
+					#unitprice = row[2]
+					#serialnumber = row[3]
+					isbn = itemcode # for now we are only interested in the first column: ISBN 
+					items.append(isbn)
+				itemcount += 1
+	else:
+		logger.info("Could not find input file: %s" % isbncsvfile)
+		#exit(1) # items=NULL and handle this in main
+		items = NULL
+		
+	return (items)
 
+"""
+	output
+	get_items()
+	return only valid items as specified by the formatter
+	formatter options: https://github.com/xlcnd/isbnlib
+"""
+def get_items(items, formatter):
+
+	#isbn=0 # needed, or cause of fubar, or .... ?
+
+	'''
+	options = {
+		"bibtex": reqform.bibtex(isbnlib.meta(isbn, isbn_service)),
+		"csl": reqform.csl(isbnlib.meta(isbn, isbn_service)), 
+		"msword": reqform.msword(isbnlib.meta(isbn, isbn_service)), 
+		"endnote": reqform.endnote(isbnlib.meta(isbn, isbn_service)), 
+		"refworks": reqform.refworks(isbnlib.meta(isbn, isbn_service)),
+		"opf": reqform.opf(isbnlib.meta(isbn, isbn_service)), 
+		"json": reqform.json(isbnlib.meta(isbn, isbn_service)),
+	}
+	'''
+	logger.info("Formatter: %s" % formatter)	
+	if not formatter in ["bibtex", "csl", "msword", "endnote", "refworks", "opf", "json"]:
+		logger.info("Unknown formatter requested")
+		return (None, items)
+	
+	logger.info("Formatter: %s" % formatter)	
+	reqform = isbnlib.registry.bibformatters[formatter]
+
+	items_ok = []
+	items_with_issues = []
+	
+	for i, item in enumerate(items):
+		logger.debug("Need to check and lookup ISBN : %s" % item)
+		isbn = item # yuk, needs propper verification
+		
+		try:
+			myitem = (reqform(isbnlib.meta(isbn, isbn_service)))
+			print (myitem)
+			items_ok.append(myitem)
+			#print(options(formatter)) # correct isbn ?
+			#print(bibtex(isbnlib.meta(isbn, isbn_service)))
+			#print(json(isbnlib.meta(isbn, isbn_service)))
+		except ISBNLibException as e:
+			items_with_issues.append(isbn)
+			pass
+	return (reqform, items_with_issues)
+
+def write_output(myoutput, outputfile):
+	try:
+		fhandle = open(outputfile, 'wb')
+		fhandle.write(myoutput)
+		#print(myoutput,fhandle)
+		fhandle.close()
+	except Exception as e:
+		logger.info("Unable to write output to disk")
+		logger.exception #logger.info(e)
+		return (False)
+	return (True)
+
+def output_bibtex(items, outfile):
+	logger.debug("Output %s in Bibtex format" % outfile)
+	(okitems, faileditems) = get_items(items,'bibtex')
+	atw = write_output(okitems, outfile)
+	return (atw, faileditems)
+
+# CSL-JSON
+def output_csl(items, outfile):
+	logger.debug("Output %s in CSL format" % outfile)
+	(okitems, faileditems) = get_items(items,'csl')
+	atw = write_output(okitems, outfile)
+	return (atw, faileditems)
+
+def output_msword(items, outfile):
+	logger.debug("Output %s in MSWord format" % outfile)
+	okitems, faileditems = get_items(items,'msword')
+	atw = write_output(okitems, outfile)
+	return (atw, faileditems)
+
+def output_endnote(items, outfile):
+	logger.debug("Output %s in EndNote format" % outfile)
+	okitems, faileditems = get_items(items,'endnote')
+	atw = write_output(okitems, outfile)
+	return (atw, faileditems)
+
+def output_refworks(items, outfile):
+	logger.debug("Output %s in RefWorks format" % outfile)
+	okitems, faileditems = get_items(items,'refworks')
+	atw = write_output(okitems, outfile)
+	return (atw, faileditems)
+
+def output_opf(items, outfile):
+	logger.debug("Output %s in Opf format" % outfile)
+	okitems, faileditems = get_items(items,'opf')
+	atw = write_output(okitems, outfile)
+	return (atw, faileditems)
+
+def output_json(items, outfile):
+	logger.debug("Output %s in JSON format" % outfile)
+	okitems, faileditems = get_items(items,'json')
+	atw = write_output(okitems, outfile)
+	return (atw, faileditems)
+
+'''
+try:
+	db = biblib.DibDBCollecion()
+	db.addDB(biblib.FileDibDB(args.output))
+	db.addDB(biblib.DoiBibDB())
+	db.addDB(biblib.IsbnBibDB())
+except Exception as e:
+	print(e, file=sys.stderr)
+	sys.exit(1)
+'''
+'''
+bibtex = isbnlib.registry.bibformatters['bibtex']
+json = isbnlib.registry.bibformatters['json']
 for i, item in enumerate(items):
-	logger.info("Need to check and lookup ISBN : %s" % item)
+	logger.debug("Need to check and lookup ISBN : %s" % item)
 	isbn = item # yuk, needs propper verification
 	
-	#bibtex = isbnlib.registry.bibformatters['bibtex']
-	#print(bibtex(isbnlib.meta(isbn, isbn_service)))
+	try:
+		print(bibtex(isbnlib.meta(isbn, isbn_service)))
+		#print(json(isbnlib.meta(isbn, isbn_service)))
+	except:
+		items_with_issues.append(isbn)
+		pass
 	
+	#db.add_entry((isdnlib.meta(isbn, isbn_service))
+'''	
+	
+'''
 	book = isbnlib.meta(isbn)
 	#print(book)
 	book_title = book['Title']
@@ -88,5 +229,50 @@ for i, item in enumerate(items):
 	print ("  publisher : %s" % book_publisher)
 	print ("  year : %s" % book_year)
 	print ("  language : %s" % book_language)
+'''
+def main():
 	
-print("Finished")
+	items = read_input(isbncsvfile) 
+
+	items_with_issues = []
+	
+	logger.debug("Outfile : %s" % outfile)
+	
+	options = {
+		'bibtex': output_bibtex,
+		'csl': output_csl, 
+		'msword': output_msword, 
+		'endnote': output_endnote, 
+		'refworks': output_refworks,
+		'opf': output_opf, 
+		'json': output_json,
+	}
+	
+	#formatter= args.formatter # why does the code above fubars this var?
+	
+	try:
+		logger.info("Outputfile of type %s selected" % formatter)
+		(listitems, items_with_issues) = options[formatter](items, outfile)
+		if not listitems:
+			logger.info("Failed to write outputfile")
+	except KeyError:
+		logger.info("Unknown formatter specified as type of output")
+		exit(1)
+	
+	no_of_all_items=len(items)
+	#items_with_issues = [] # create list : # expensive: can this be done differently? (global, return tuple?)
+	no_of_troublesome_items=len(items_with_issues) 
+	no_of_proper_items = no_of_all_items - no_of_troublesome_items
+		
+	print("From the %d ISBN in the input %d had issues" % (len(items), len(items_with_issues)))
+	if len(items_with_issues)>0:
+		print("List of ISBN with issues : ")
+		for item in items_with_issues:
+			print(item)	
+	print("Finished")
+
+if __name__ == "__main__":
+	main()
+else:
+	logger.info("Hun? __name__ = %s" % __name__)
+	main()

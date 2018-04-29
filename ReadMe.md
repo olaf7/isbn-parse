@@ -49,4 +49,4 @@ Quite trivial regardless if you are uring Python 2 or Python 3 with [Standard Py
 
 ### biblib
 [BibLib](https://pypi.org/project/biblib/)
-
+[Example](http://wgserve.de/biblib/tutorial.html#example)
