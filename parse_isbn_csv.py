@@ -19,7 +19,7 @@ import argparse
 import os
 
 import bibtexparser
-import docx
+#import docx # not in Debian?
 
 
 #__name__ = "parse_isbn_csv"
@@ -139,10 +139,10 @@ def write_output(myoutput, outputfile):
 				# CSL-JSON
 				json.dump(myoutput, f)
 			if formatter == "msword":
-				# https://python-docx.readthedocs.io/en/latest/
+				# https://python-docx.readthedocs.io/en/latest/  <-- not supported in Debian?
 				f.close()
-				document = Document(myoutput)
-				document.save(outputfile)
+				#document = Document(myoutput)
+				#document.save(outputfile)
 			if formatter == "endnote":
 				# https://en.wikipedia.org/wiki/EndNote
 				# for now consider it as a bunch of strings
@@ -156,6 +156,7 @@ def write_output(myoutput, outputfile):
 				# for now consider it as a bunch of strings
 				print (myoutput, f)
 			if formatter == "json":
+				# BibJSON
 				json.dump(myoutput, f, indent=4)
 		#fhandle = open(outputfile, 'wb')
 		#fhandle.write(myoutput)
@@ -163,7 +164,7 @@ def write_output(myoutput, outputfile):
 		#fhandle.close()
 	except Exception as e:
 		logger.info("Unable to write output to disk")
-		logger.exception #logger.info(e)
+		logger.info(e)
 		return (False)
 	return (True)
 
