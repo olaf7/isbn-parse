@@ -11,19 +11,16 @@
 	Output: varies, depends on type and available metadata
 """
 
-"""
-	Major issue: https://stackoverflow.com/questions/8542274/python-xlrd-receiving-float-from-excel-text-cell?rq=1
-	Solution : none, epic fail
-"""
-
 import csv
 import isbnlib
 import sys
 import logging
 import argparse
 import os
-#import bibtexparser
-#import inspect
+
+import bibtexparser
+import docx
+
 
 #__name__ = "parse_isbn_csv"
 __copyright__ = "Copyright 2018, Olaf Zevenboom"
@@ -131,11 +128,39 @@ def get_items(items, formatter):
 	return (reqform, items_with_issues)
 
 def write_output(myoutput, outputfile):
+	# this sucks. I would like something generic
+	# also add try/except construction to handle errors
 	try:
-		fhandle = open(outputfile, 'wb')
-		fhandle.write(myoutput)
+		with open(outputfile, 'wb') as f:
+			if formatter == "bibtex":
+				# https://bibtexparser.readthedocs.io/en/master/tutorial.html#step-3-export
+				bibtexparser.dump(myoutput,f)
+			if formatter == "csl":
+				# CSL-JSON
+				json.dump(myoutput, f)
+			if formatter == "msword":
+				# https://python-docx.readthedocs.io/en/latest/
+				f.close()
+				document = Document(myoutput)
+				document.save(outputfile)
+			if formatter == "endnote":
+				# https://en.wikipedia.org/wiki/EndNote
+				# for now consider it as a bunch of strings
+				print (myoutput, f)
+			if formatter == "refworks":
+				# https://en.wikipedia.org/wiki/RefWorks
+				# for now consider it as a bunch of strings
+				print (myoutput, f)
+			if formatter == "opf":
+				# no idea!
+				# for now consider it as a bunch of strings
+				print (myoutput, f)
+			if formatter == "json":
+				json.dump(myoutput, f, indent=4)
+		#fhandle = open(outputfile, 'wb')
+		#fhandle.write(myoutput)
 		#print(myoutput,fhandle)
-		fhandle.close()
+		#fhandle.close()
 	except Exception as e:
 		logger.info("Unable to write output to disk")
 		logger.exception #logger.info(e)
