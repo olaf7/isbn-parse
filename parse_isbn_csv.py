@@ -19,6 +19,7 @@ import argparse
 import os
 
 import bibtexparser
+import json
 #import docx # not in Debian?
 
 
@@ -87,19 +88,6 @@ def read_input(infile):
 """
 def get_items(items, formatter):
 
-	#isbn=0 # needed, or cause of fubar, or .... ?
-
-	'''
-	options = {
-		"bibtex": reqform.bibtex(isbnlib.meta(isbn, isbn_service)),
-		"csl": reqform.csl(isbnlib.meta(isbn, isbn_service)), 
-		"msword": reqform.msword(isbnlib.meta(isbn, isbn_service)), 
-		"endnote": reqform.endnote(isbnlib.meta(isbn, isbn_service)), 
-		"refworks": reqform.refworks(isbnlib.meta(isbn, isbn_service)),
-		"opf": reqform.opf(isbnlib.meta(isbn, isbn_service)), 
-		"json": reqform.json(isbnlib.meta(isbn, isbn_service)),
-	}
-	'''
 	logger.info("Formatter: %s" % formatter)	
 	if not formatter in ["bibtex", "csl", "msword", "endnote", "refworks", "opf", "json"]:
 		logger.info("Unknown formatter requested")
@@ -174,7 +162,6 @@ def output_bibtex(items, outfile):
 	atw = write_output(okitems, outfile)
 	return (atw, faileditems)
 
-# CSL-JSON
 def output_csl(items, outfile):
 	logger.debug("Output %s in CSL format" % outfile)
 	(okitems, faileditems) = get_items(items,'csl')
@@ -221,41 +208,7 @@ except Exception as e:
 	print(e, file=sys.stderr)
 	sys.exit(1)
 '''
-'''
-bibtex = isbnlib.registry.bibformatters['bibtex']
-json = isbnlib.registry.bibformatters['json']
-for i, item in enumerate(items):
-	logger.debug("Need to check and lookup ISBN : %s" % item)
-	isbn = item # yuk, needs propper verification
-	
-	try:
-		print(bibtex(isbnlib.meta(isbn, isbn_service)))
-		#print(json(isbnlib.meta(isbn, isbn_service)))
-	except:
-		items_with_issues.append(isbn)
-		pass
-	
-	#db.add_entry((isdnlib.meta(isbn, isbn_service))
-'''	
-	
-'''
-	book = isbnlib.meta(isbn)
-	#print(book)
-	book_title = book['Title']
-	book_authors = book['Authors']
-	book_isbn = isbn # book['ISBN-13']
-	book_year = book['Year']
-	book_publisher = book['Publisher']
-	book_language = book['Language']
-	
-	print ("item=%d" % i)
-	print ("ISBN : %s " % book_isbn)
-	print ("  title : %s" % book_title)
-	print ("  authors : %s" % book_authors)
-	print ("  publisher : %s" % book_publisher)
-	print ("  year : %s" % book_year)
-	print ("  language : %s" % book_language)
-'''
+
 def main():
 	
 	items = read_input(isbncsvfile) 
