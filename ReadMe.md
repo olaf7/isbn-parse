@@ -47,6 +47,46 @@ Quite trivial regardless if you are uring Python 2 or Python 3 with [Standard Py
 ### ISBNlib
 [ISBNlib](https://pypi.org/project/isbnlib/)
 
-### biblib
+ISBNlib allows for various export as can be seen on the [ISBNlib on Github](https://github.com/xlcnd/isbnlib) page:
+The output can be formatted as bibtex, csl (CSL-JSON), msword, endnote, refworks, opf or json (BibJSON) bibliographic formats with isbnlib.registry.bibformatters. cache only allows two values: 'default' or None. You can change the kind of cache by using isbnlib.registry.set_cache (see below). Now, you can extend the functionality of this function by adding pluggins, more metadata providers or new bibliographic formatters (check for available pluggins).
+
+For all(?) output take note of:
+* maybe not all items can be resolved
+* maybe not all items are fully resolved
+* documents are created per item, these should be combined in a properly formatted single document/file.
+
+#### BiBTeX
+Based on LaTeX.
+
+* Homepage : https://bibtexparser.readthedocs.io/en/master/index.html
+* Links with background info: https://bibtexparser.readthedocs.io/en/master/bibtex_conv.html
+* Validate offline: https://code.google.com/archive/p/bibtex-check/
+* Validate online: http://truben.no/latex/bibtex/
+
+#### CSL (CSL-JSON)
+Citation Styles Language based on JSON
+https://citationstyles.org/
+
+#### MS-Word
+MSWord 2003 format
+https://python-docx.readthedocs.io/en/latest/
+
+#### EndNote
+https://endnote.com/
+
+#### RefWorks
+https://en.wikipedia.org/wiki/RefWorks
+
+#### Opf
+http://idpf.org/
+
+#### JSON (BibJSON)
+http://okfnlabs.org/bibjson/
+
+### CSV
+I added this feature as this is what it was all about: import ISBN, query to get details and export it all in an easy to be used generic format.
+
+
+### note to self: biblib
 [BibLib](https://pypi.org/project/biblib/)
 [Example](http://wgserve.de/biblib/tutorial.html#example)
