@@ -21,6 +21,7 @@ import os
 import bibtexparser
 import json
 #import docx # not in Debian?
+import odf # better alternative to manipulate Word/DocX files ?
 #import pandas
 import ast
 
@@ -29,7 +30,7 @@ __copyright__ = "Copyright 2018, Olaf Zevenboom"
 __author__ = "Olaf Zevenboom"
 __credits__ = ["Olaf Zevenboom"]
 __license__ = "http://www.wtfpl.net/"
-__version__ = "0.4"
+__version__ = "0.4.1"
 __status__ = "Development"
 
 # see for current services and limitations: https://pypi.org/project/isbnlib/
@@ -80,7 +81,7 @@ def read_input(infile):
 		logger.info("Could not find input file: %s" % isbncsvfile)
 		#exit(1) # items=NULL and handle this in main
 		items = NULL
-		
+
 	return (items)
 
 """
@@ -91,22 +92,22 @@ def read_input(infile):
 """
 def get_items(items, formatter):
 
-	logger.info("Formatter: %s" % formatter)	
+	logger.info("Formatter: %s" % formatter)
 	if not formatter in ["bibtex", "csl", "msword", "endnote", "refworks", "opf", "json", "csv"]:
 		logger.info("Unknown formatter requested")
 		return (None, items)
-	if formatter == "csv": formatter='json' 
-	
-	logger.info("Formatter: %s" % formatter)	
+	if formatter == "csv": formatter='json'
+
+	logger.info("Formatter: %s" % formatter)
 	reqform = isbnlib.registry.bibformatters[formatter]
 
 	items_ok = []
 	items_with_issues = []
-	
+
 	for i, item in enumerate(items):
 		logger.debug("Need to check and lookup ISBN : %s" % item)
-		isbn = item # yuk, needs propper verification
-		
+		isbn = item # yuk, needs propper verification; sure does!
+
 		try:
 			myitem = (reqform(isbnlib.meta(isbn, isbn_service)))
 			print (myitem)
@@ -114,7 +115,8 @@ def get_items(items, formatter):
 			#print(options(formatter)) # correct isbn ?
 			#print(bibtex(isbnlib.meta(isbn, isbn_service)))
 			#print(json(isbnlib.meta(isbn, isbn_service)))
-		except ISBNLibException as e:
+		except isbnlib.ISBNLibException as e:
+			# Exception within Exception: ???
 			items_with_issues.append(isbn)
 			pass
 	return (items_ok, items_with_issues)
@@ -128,6 +130,9 @@ def write_output(myoutput, outputfile):
 	logger.debug("End of data to be processed")
 	try:
 		with open(outputfile, 'w') as f:
+
+			# formatters based on:  https://en.wikipedia.org/wiki/Comparison_of_reference_management_software
+
 			if formatter == "bibtex":
 				# suggested extension: .bib
 				# https://bibtexparser.readthedocs.io/en/master/tutorial.html#step-3-export
@@ -145,45 +150,45 @@ def write_output(myoutput, outputfile):
 				parser.homogenize_fields = False
 				parser.interpolate_strings = False
 				parser.common_strings = False
-				
+
 				mos = ''.join(myoutput)
 				logger.debug("MOS = %s" % mos)
 				bibdb = bibtexparser.bibdatabase.BibDatabase()
 				#bibdb = bibtexparser.loads(mos, parser) # this only keeps the last item alive!
 				#bibdb = mos # leads to an empty outputfile
-				
+
 				# tricky, but we can dump everything in a string where items are delimited with {} and ,
 				# max string can be huge: https://stackoverflow.com/questions/1739913/what-is-the-max-length-of-a-python-string#1739928
-				
+
 				# no need, we need a dict
 				bibdb.entries = outputfile
 				#allentries = {}
 				#for myentry in myoutput:
-					
-				
+
+
 				#items=""
 				#for item in myoutput:
 				#	itemstr = bibtexparser.dumps(item, parser) # object to string, properly parsed
 				#	if len(items)>0: items += ","
-				#	items += "{" + itemstr + "]" 
-				
+				#	items += "{" + itemstr + "]"
+
 				#bibdb.entries = items.split(',')
 
 				#for item in myoutput:
 				#	bibdb = bibdb + bibtexparser.dump(item, parser)
-				
+
 				# now we should have a healthy BinTeX database now, so lets export
 
 				#logger.debug("Current BibTex datastructure:")
 				#logger.debug(bibdb)
-				
-				
+
+
 				writer = bibtexparser.bwriter.BibTexWriter()
 				writer.indent = '    '     # indent entries with 4 spaces instead of one
 				writer.comma_first = True  # place the comma at the beginning of the line
-				
+
 				f.write(writer.write(bibdb))
-				 
+
 			if formatter == "csl":
 				# CSL-JSON
 				for item in myoutput:
@@ -194,7 +199,8 @@ def write_output(myoutput, outputfile):
 				# Source xmlns:b="http://schemas.microsoft.com/office/word/2004/10/bibliography"
 				# give every item a separate header (=doc ?) or can (and must!?) I add the item somehow?
 				# how does this work? A word doc per item (weird!) or ... ?
-				# https://python-docx.readthedocs.io/en/latest/  <-- not supported in Debian?
+				# https://python-docx.readthedocs.io/en/latest/  <-- not available as Debian package!
+				# alternative? https://github.com/eea/odfpy
 				f.close()
 				#document = Document(myoutput)
 				#document.save(outputfile)
@@ -233,10 +239,10 @@ def write_output(myoutput, outputfile):
 					logger.debug("About to write: %s" % item)
 					#json.dump(item, f, indent=4)
 					f.write("%s" % item)
-					
+
 				#for item in myoutput:
 				#	print ("Item : %s" % ( item))
-				
+
 				#if myoutput[1]['stat'] == 'ok':
 				#	json.dump(myoutput[1]['list'], f, indent=4)
 			if formatter == "csv":
@@ -246,15 +252,15 @@ def write_output(myoutput, outputfile):
 				# better: http://stackabuse.com/reading-and-writing-csv-files-in-python/
 
 				csv.register_dialect('bibcsv', delimiter=',', quoting=csv.QUOTE_NONE, quotechar='', escapechar='\\')
-				
+
 				myFields=['title', 'author', 'year', 'isbn', 'publisher']
 				writer = csv.DictWriter(f, dialect='bibcsv', fieldnames=myFields)
 				writer.writeheader()
-				
+
 				for item in myoutput:
 					logger.debug("Item : %s" % item)
 					itemdict = ast.literal_eval(item)
-				
+
 					# what to do if item part does not exist?!
 					item_title      = itemdict.get('title')
 					logger.debug("About to write Title: %s" % item_title)
@@ -322,7 +328,7 @@ def output_json(items, outfile):
 	okitems, faileditems = get_items(items,'json')
 	atw = write_output(okitems, outfile)
 	return (atw, faileditems)
-	
+
 def output_csv(items, outfile):
 	logger.debug("Output %s in CSV format" % outfile)
 	okitems, faileditems = get_items(items,'csv')
@@ -341,26 +347,26 @@ except Exception as e:
 '''
 
 def main():
-	
-	items = read_input(isbncsvfile) 
+
+	items = read_input(isbncsvfile)
 
 	items_with_issues = []
-	
+
 	logger.debug("Outfile : %s" % outfile)
-	
+
 	options = {
 		'bibtex': output_bibtex,
-		'csl': output_csl, 
-		'msword': output_msword, 
-		'endnote': output_endnote, 
+		'csl': output_csl,
+		'msword': output_msword,
+		'endnote': output_endnote,
 		'refworks': output_refworks,
-		'opf': output_opf, 
+		'opf': output_opf,
 		'json': output_json,
 		'csv': output_csv,
 	}
-	
+
 	#formatter= args.formatter # why does the code above fubars this var?
-	
+
 	try:
 		logger.info("Outputfile of type %s selected" % formatter)
 		(listitems, items_with_issues) = options[formatter](items, outfile)
@@ -369,17 +375,17 @@ def main():
 	except KeyError:
 		logger.info("Unknown formatter specified as type of output")
 		exit(1)
-	
+
 	no_of_all_items=len(items)
 	#items_with_issues = [] # create list : # expensive: can this be done differently? (global, return tuple?)
-	no_of_troublesome_items=len(items_with_issues) 
+	no_of_troublesome_items=len(items_with_issues)
 	no_of_proper_items = no_of_all_items - no_of_troublesome_items
-		
+
 	print("From the %d ISBN in the input %d had issues" % (len(items), len(items_with_issues)))
 	if len(items_with_issues)>0:
 		print("List of ISBN with issues : ")
 		for item in items_with_issues:
-			print(item)	
+			print(item)
 	print("Finished")
 
 if __name__ == "__main__":
