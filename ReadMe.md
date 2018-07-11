@@ -30,24 +30,25 @@ Although many apps are available, this one seemed quite friendly given the permi
 
 ## Parsing implementation
 
-LoMag seems to works reasonbly well although scanning is not always trivial. Could be the device or the light.
+LoMag seems to works reasonably well although scanning is not always trivial. Could be the device or the light.
 The result can be mailed. The recipient will receive a Microsoft Excel 97-2003 compatible file.
 
 Next this needs to be parsed so the meta data of the ISBN can be looked up by querying one of the online book registries.
 
 ### Read XLS file
 [Working with Excel Files in Python](http://www.python-excel.org/) lists [XLRD](http://xlrd.readthedocs.io/en/latest/) is an option. As I have been very successful in the past using this, it seemed as a good idea. Again also as it is included in Debian.
-So I wrote some code. It is included, for eductional purposes, as.... I found out it fails horribly. "1.0" is not something you want to be found in the xls-file, however every ISBN is read aninterpreted as such.
+So I wrote some code. It is included, for educational purposes, as.... I found out it fails horribly. "1.0" is not something you want to be found in the xls-file, however every ISBN is read uninterpreted as such.
 I am not the only one who stumbled upon this: [1.0 bug xlrd python lib](https://stackoverflow.com/questions/8542274/python-xlrd-receiving-float-from-excel-text-cell?rq=1)
-Resulting it uter uselessness with the need to export the data to CSV (Comma Separated Value) file.
+Resulting it utter uselessness with the need to export the data to CSV (Comma Separated Value) file.
 
-### read CVS file
-Quite trivial regardless if you are uring Python 2 or Python 3 with [Standard Python CSV library](https://docs.python.org/3.6/library/csv.html)
+### Read CVS file
+Quite trivial regardless if you are using Python 2 or Python 3 with [Standard Python CSV library](https://docs.python.org/3.6/library/csv.html)
 
 ### ISBNlib
 [ISBNlib](https://pypi.org/project/isbnlib/)
 
 ISBNlib allows for various export as can be seen on the [ISBNlib on Github](https://github.com/xlcnd/isbnlib) page:
+
 The output can be formatted as:
 * bibtex
 * csl (CSL-JSON)
@@ -56,7 +57,13 @@ The output can be formatted as:
 * refworks,
 * opf
 * json (BibJSON)
- bibliographic formats with isbnlib.registry.bibformatters. Cache only allows two values: 'Default' or 'None'. You can change the kind of cache by using isbnlib.registry.set_cache (see below). Now, you can extend the functionality of this function by adding pluggins, more metadata providers or new bibliographic formatters (check for available pluggins).
+Which are bibliographic formats supported by isbnlib.registry.bibformatters. 
+Cache only allows two values: 'Default' or 'None'. You can change the kind of cache by using isbnlib.registry.set_cache (see below). 
+Now, you can extend the functionality of this function by adding plugins, more metadata providers or new bibliographic formatters (check for available plugins).
+
+It would be cool if the meta catalog was traversable: https://www.isbn-international.org/
+
+The output can be formatted as bibtex, csl (CSL-JSON), msword, endnote, refworks, opf or json (BibJSON) bibliographic formats with isbnlib.registry.bibformatters. cache only allows two values: 'default' or None. You can change the kind of cache by using isbnlib.registry.set_cache (see below). Now, you can extend the functionality of this function by adding plugins, more metadata providers or new bibliographic formatters (check for available plugins).
 
 For all(?) output take note of:
 * maybe not all items can be resolved

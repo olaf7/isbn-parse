@@ -21,16 +21,24 @@ import os
 import bibtexparser
 import json
 #import docx # not in Debian?
+
 import odf # better alternative to manipulate Word/DocX files ?
+
 #import pandas
 import ast
+
+# nasty: needs improvement:
+from isbnlib.dev._exceptions import (
+    DataNotFoundAtServiceError, DataWrongShapeError, ISBNLibDevException,
+    ISBNLibHTTPError, ISBNLibURLError, NoAPIKeyError, NoDataForSelectorError,
+    NotValidMetadataError, RecordMappingError, ServiceIsDownError)
 
 #__name__ = "parse_isbn_csv"
 __copyright__ = "Copyright 2018, Olaf Zevenboom"
 __author__ = "Olaf Zevenboom"
 __credits__ = ["Olaf Zevenboom"]
 __license__ = "http://www.wtfpl.net/"
-__version__ = "0.4.1"
+__version__ = "0.4.2"
 __status__ = "Development"
 
 # see for current services and limitations: https://pypi.org/project/isbnlib/
@@ -93,12 +101,14 @@ def read_input(infile):
 def get_items(items, formatter):
 
 	logger.info("Formatter: %s" % formatter)
+	
 	if not formatter in ["bibtex", "csl", "msword", "endnote", "refworks", "opf", "json", "csv"]:
 		logger.info("Unknown formatter requested")
 		return (None, items)
 	if formatter == "csv": formatter='json'
 
 	logger.info("Formatter: %s" % formatter)
+
 	reqform = isbnlib.registry.bibformatters[formatter]
 
 	items_ok = []
@@ -119,6 +129,12 @@ def get_items(items, formatter):
 			# Exception within Exception: ???
 			items_with_issues.append(isbn)
 			pass
+		except DataWrongShapeError as e:
+			# Exception within Exception: ???
+			items_with_issues.append(isbn)
+			pass
+		except Exception as e:
+			logger.error(e)			
 	return (items_ok, items_with_issues)
 
 def write_output(myoutput, outputfile):
@@ -156,22 +172,22 @@ def write_output(myoutput, outputfile):
 				bibdb = bibtexparser.bibdatabase.BibDatabase()
 				#bibdb = bibtexparser.loads(mos, parser) # this only keeps the last item alive!
 				#bibdb = mos # leads to an empty outputfile
-
+				
 				# tricky, but we can dump everything in a string where items are delimited with {} and ,
 				# max string can be huge: https://stackoverflow.com/questions/1739913/what-is-the-max-length-of-a-python-string#1739928
-
+				
 				# no need, we need a dict
 				bibdb.entries = outputfile
 				#allentries = {}
 				#for myentry in myoutput:
 
-
 				#items=""
 				#for item in myoutput:
 				#	itemstr = bibtexparser.dumps(item, parser) # object to string, properly parsed
 				#	if len(items)>0: items += ","
-				#	items += "{" + itemstr + "]"
 
+				#	items += "{" + itemstr + "]" 
+				
 				#bibdb.entries = items.split(',')
 
 				#for item in myoutput:
@@ -181,14 +197,13 @@ def write_output(myoutput, outputfile):
 
 				#logger.debug("Current BibTex datastructure:")
 				#logger.debug(bibdb)
-
-
+				
 				writer = bibtexparser.bwriter.BibTexWriter()
 				writer.indent = '    '     # indent entries with 4 spaces instead of one
 				writer.comma_first = True  # place the comma at the beginning of the line
-
+				
 				f.write(writer.write(bibdb))
-
+				 
 			if formatter == "csl":
 				# CSL-JSON
 				for item in myoutput:
@@ -199,8 +214,10 @@ def write_output(myoutput, outputfile):
 				# Source xmlns:b="http://schemas.microsoft.com/office/word/2004/10/bibliography"
 				# give every item a separate header (=doc ?) or can (and must!?) I add the item somehow?
 				# how does this work? A word doc per item (weird!) or ... ?
+
 				# https://python-docx.readthedocs.io/en/latest/  <-- not available as Debian package!
 				# alternative? https://github.com/eea/odfpy
+
 				f.close()
 				#document = Document(myoutput)
 				#document.save(outputfile)
@@ -239,10 +256,10 @@ def write_output(myoutput, outputfile):
 					logger.debug("About to write: %s" % item)
 					#json.dump(item, f, indent=4)
 					f.write("%s" % item)
-
+					
 				#for item in myoutput:
 				#	print ("Item : %s" % ( item))
-
+				
 				#if myoutput[1]['stat'] == 'ok':
 				#	json.dump(myoutput[1]['list'], f, indent=4)
 			if formatter == "csv":
@@ -252,15 +269,15 @@ def write_output(myoutput, outputfile):
 				# better: http://stackabuse.com/reading-and-writing-csv-files-in-python/
 
 				csv.register_dialect('bibcsv', delimiter=',', quoting=csv.QUOTE_NONE, quotechar='', escapechar='\\')
-
+				
 				myFields=['title', 'author', 'year', 'isbn', 'publisher']
 				writer = csv.DictWriter(f, dialect='bibcsv', fieldnames=myFields)
 				writer.writeheader()
-
+				
 				for item in myoutput:
 					logger.debug("Item : %s" % item)
 					itemdict = ast.literal_eval(item)
-
+				
 					# what to do if item part does not exist?!
 					item_title      = itemdict.get('title')
 					logger.debug("About to write Title: %s" % item_title)
@@ -326,6 +343,12 @@ def output_opf(items, outfile):
 def output_json(items, outfile):
 	logger.debug("Output %s in JSON format" % outfile)
 	okitems, faileditems = get_items(items,'json')
+	atw = write_output(okitems, outfile)
+	return (atw, faileditems)
+	
+def output_csv(items, outfile):
+	logger.debug("Output %s in CSV format" % outfile)
+	okitems, faileditems = get_items(items,'csv')
 	atw = write_output(okitems, outfile)
 	return (atw, faileditems)
 
