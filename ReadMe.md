@@ -105,3 +105,13 @@ I added this feature as this is what it was all about: import ISBN, query to get
 ### note to self: biblib
 [BibLib](https://pypi.org/project/biblib/)
 [Example](http://wgserve.de/biblib/tutorial.html#example)
+
+# To Do List
+Ran successfully once on two ISBN source files. However:
+* code cleanup
+* further tests and cleanup of logger code/output
+* confirm to standards
+* check for PEP8 etc compliance
+* test with other formats besides CSV --> CSV
+* sanity check on ISBN codes
+* validate output based on validator info as described above
